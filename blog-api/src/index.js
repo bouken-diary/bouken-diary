@@ -19,7 +19,7 @@ export default {
       return request.method === "GET" ? adminPage() : json({ error: "method_not_allowed" }, 405);
     }
     if (url.pathname.startsWith("/admin/api/")) {
-      return handleAdminApi(request, env, url);
+      return handleAdminApi(request, env, url, ctx);
     }
 
     // ブログの記事ページから呼ばれるAPI

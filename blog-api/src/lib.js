@@ -52,10 +52,10 @@ export async function readJson(request) {
   }
 }
 
-// 実在する記事かを、公開中の search-index.json で確認する（10分キャッシュ）。
-// サイトが一時的に読めないときは、機能を止めないよう確認を省略する。
-export async function articleExists(slug, env, ctx) {
-  if (!env.SITE_URL) return true;
+// 公開中の search-index.json（日記と攻略の slug・path・タイトル）を読む（10分キャッシュ）。
+// サイトが一時的に読めないときは null を返す。
+export async function loadArticleIndex(env, ctx) {
+  if (!env.SITE_URL) return null;
   const indexUrl = `${env.SITE_URL.replace(/\/+$/, "")}/search-index.json`;
   const cache = caches.default;
   const cacheKey = new Request(indexUrl);
@@ -64,20 +64,28 @@ export async function articleExists(slug, env, ctx) {
   if (!res) {
     try {
       const fresh = await fetch(indexUrl);
-      if (!fresh.ok) return true;
+      if (!fresh.ok) return null;
       res = new Response(await fresh.text(), {
         headers: { "Content-Type": "application/json", "Cache-Control": "max-age=600" },
       });
       ctx.waitUntil(cache.put(cacheKey, res.clone()));
     } catch {
-      return true;
+      return null;
     }
   }
 
   try {
     const list = await res.json();
-    return Array.isArray(list) && list.some((a) => a.slug === slug);
+    return Array.isArray(list) ? list : null;
   } catch {
-    return true;
+    return null;
   }
+}
+
+// 実在する記事かを、公開中の search-index.json で確認する。
+// サイトが一時的に読めないときは、機能を止めないよう確認を省略する。
+export async function articleExists(slug, env, ctx) {
+  const list = await loadArticleIndex(env, ctx);
+  if (!list) return true;
+  return list.some((a) => a.slug === slug);
 }

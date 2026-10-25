@@ -105,5 +105,69 @@
         "body": "visible にチェックがないので公開されません。"
       }
     }
+  ],
+  "guides": [
+    {
+      "id": "recGuide001",
+      "createdTime": "2026-10-20T00:00:00.000Z",
+      "fields": {
+        "title": "モンスターポートの使い方｜建築・鍛冶・防衛の違い",
+        "slug": "monster-port",
+        "game": "DQM7",
+        "category": "建築・ポート",
+        "excerpt": "モンスターポートの置き方と、建築・鍛冶・防衛それぞれの使い方、壊すとアイテムが消える注意点をまとめました。",
+        "visible": true,
+        "publishedAt": "2026-10-20",
+        "updatedAt": "2026-10-21",
+        "version": "1.00.00",
+        "order": 1,
+        "top image": [
+          {
+            "id": "attG1",
+            "url": "images/grass.png",
+            "filename": "grass.png"
+          }
+        ],
+        "image 1": [
+          {
+            "id": "attG2",
+            "url": "images/sky.png",
+            "filename": "sky.png"
+          }
+        ],
+        "related_articles": [
+          "recSample0001",
+          "recSample0002"
+        ],
+        "body": "## モンスターポートとは\n\n仲間モンスターに作業を手伝ってもらうためのブロックです。\n\n【写真1】>建築ポートの例<\n\n## ポートの種類\n\n| ポート | できること | 手に入る時期 |\n|---|---|---|\n| 建築 | 家などを建てる | 最初の家 |\n| 鍛冶 | 武器・防具を作る | 最初の家 |\n| 防衛 | 周りの敵を倒す | 農業のチュートリアル後 |\n\n## 注意点\n\n>>ちゅうい：ポートを こわすと なかのアイテムも きえてしまう！<<"
+      }
+    },
+    {
+      "id": "recGuide002",
+      "createdTime": "2026-10-20T00:00:00.000Z",
+      "fields": {
+        "title": "はじめにやること5つ",
+        "slug": "first-steps",
+        "game": "DQM7",
+        "category": "はじめに",
+        "excerpt": "ワールドを作ってから最初の夜までにやっておきたいことをまとめました。",
+        "visible": true,
+        "publishedAt": "2026-10-19",
+        "updatedAt": "2026-10-22",
+        "version": "1.00.00",
+        "body": "## 1. ボーナスチェストをオンに\n\n序盤が楽になります。"
+      }
+    },
+    {
+      "id": "recGuide003",
+      "createdTime": "2026-10-20T00:00:00.000Z",
+      "fields": {
+        "title": "配合おじさんと配合の杖の違い",
+        "game": "DQM7",
+        "category": "モンスター・配合",
+        "visible": false,
+        "body": "下書き"
+      }
+    }
   ]
 }

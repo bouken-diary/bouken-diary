@@ -126,6 +126,7 @@ function getConfig() {
     baseId: process.env.AIRTABLE_BASE_ID || "",
     token: process.env.AIRTABLE_TOKEN || "",
     tableName: process.env.AIRTABLE_TABLE || "Articles",
+    guidesTable: process.env.AIRTABLE_GUIDES_TABLE || "Guides",
     view: process.env.AIRTABLE_VIEW || "",
   };
 }
@@ -149,16 +150,31 @@ async function fetchTableRecords(config) {
     if (offset) url.searchParams.set("offset", offset);
 
     let res;
+    let detail = "";
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       res = await fetch(url, { headers: { Authorization: `Bearer ${config.token}` } });
       if (res.status !== 429) break;
+      detail = await res.text().catch(() => "");
+
+      // 月の呼び出し回数の上限は、待っても戻らないので、すぐに止める
+      if (detail.includes("PUBLIC_API_BILLING_LIMIT_EXCEEDED")) {
+        const error = new Error(
+          "Airtableの今月のAPI呼び出し回数の上限に達しています。" +
+            "このベースがあるワークスペースの使用状況を確認するか、来月のリセットを待ってください。"
+        );
+        error.status = 429;
+        throw error;
+      }
+
       console.warn(`  Airtableのレート制限に達しました。30秒待って再試行します（${attempt}/3）`);
       await sleep(30_000);
     }
 
     if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      throw new Error(`Airtable API error ${res.status}: ${detail.slice(0, 300)}`);
+      if (!detail) detail = await res.text().catch(() => "");
+      const error = new Error(`Airtable API error ${res.status}: ${detail.slice(0, 300)}`);
+      error.status = res.status;
+      throw error;
     }
 
     const data = await res.json();
@@ -171,7 +187,7 @@ async function fetchTableRecords(config) {
 
 // ローカル確認用：Airtableの代わりにJSONファイルからレコードを読む。
 // 画像のurlにはファイルパス（JSONからの相対パス）を書ける。
-async function loadFixtureRecords(fixturePath) {
+async function loadFixtureRecords(fixturePath, key = "records") {
   const abs = path.resolve(fixturePath);
   const data = JSON.parse(await fs.readFile(abs, "utf8"));
   const dir = path.dirname(abs);
@@ -179,7 +195,7 @@ async function loadFixtureRecords(fixturePath) {
   const resolveUrl = (att) =>
     /^https?:\/\//.test(att.url) ? att : { ...att, url: path.resolve(dir, att.url) };
 
-  return (data.records || []).map((record) => {
+  return (data[key] || []).map((record) => {
     const fields = { ...(record.fields || {}) };
     for (const [key, value] of Object.entries(fields)) {
       if (Array.isArray(value) && value.length && value[0] && typeof value[0] === "object" && value[0].url) {
@@ -291,4 +307,84 @@ async function fetchArticles({ fixture, seriesConfig = {}, now = new Date(), inc
   return articles;
 }
 
-module.exports = { fetchArticles, normalizeRecord, sanitizeSlug, isReleased };
+// ---------------------------------------------------------------
+// 攻略記事（Guides テーブル）
+// ---------------------------------------------------------------
+
+// 攻略の1レコード → 攻略記事オブジェクト。日記と同じ項目に、攻略用の項目を足す。
+function normalizeGuide(record) {
+  const base = normalizeRecord(record);
+  const fields = record.fields || {};
+  const linked = findFieldValue(fields, ["related_articles", "related articles", "関連日記", "関連記事"]);
+
+  return {
+    ...base,
+    kind: "guide",
+    game: String(findFieldValue(fields, ["game", "ゲーム"]) || "").trim(),
+    category: String(findFieldValue(fields, ["category", "カテゴリ", "カテゴリー"]) || "").trim(),
+    updatedAt: findFieldValue(fields, ["updatedAt", "updated at", "最終更新", "更新日"]) || base.publishedAt,
+    version: String(findFieldValue(fields, ["version", "対応バージョン", "バージョン", "mod_version"]) || ""),
+    order: toNumberOrNull(findFieldValue(fields, ["order", "並び順"])),
+    relatedIds: Array.isArray(linked) ? linked.filter((v) => typeof v === "string") : [],
+  };
+}
+
+// 攻略記事を取得する。Guides テーブルがまだない場合は、攻略なしとして空で返す。
+async function fetchGuides({ fixture, guidesConfig = {}, now = new Date(), includeDrafts = false } = {}) {
+  let records;
+  if (fixture) {
+    records = await loadFixtureRecords(fixture, "guides");
+  } else {
+    const config = getConfig();
+    try {
+      records = await fetchTableRecords({ ...config, tableName: config.guidesTable });
+    } catch (error) {
+      if (error.status === 403 || error.status === 404) {
+        console.log(`  攻略のテーブル「${config.guidesTable}」が見つからないので、攻略はスキップします`);
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  const all = records.map(normalizeGuide);
+  all.forEach((g) => {
+    g.status = !g.visible ? "draft" : isReleased(g, now) ? "published" : "scheduled";
+  });
+
+  const noGame = all.filter((g) => !g.game);
+  if (noGame.length) console.warn(`  ⚠ game が空の攻略記事が${noGame.length}件あるので、表示しません`);
+
+  const shown = all.filter((g) => g.game && (includeDrafts || g.status === "published"));
+  const hidden = all.filter((g) => g.game && g.status !== "published").length;
+  if (hidden) {
+    console.log(
+      includeDrafts
+        ? `  非公開・予約中の攻略記事: ${hidden}件（プレビューなので表示します）`
+        : `  非公開・予約中の攻略記事: ${hidden}件はスキップ`
+    );
+  }
+
+  // URL：/guide/ゲームのslug/記事のslug/
+  const used = new Set();
+  for (const g of shown) {
+    g.gameSlug = sanitizeSlug(guidesConfig[g.game] && guidesConfig[g.game].slug) || sanitizeSlug(g.game) || "game";
+    if (!g.slug) g.slug = sanitizeSlug(g.id);
+    let slug = g.slug;
+    let n = 2;
+    while (used.has(`${g.gameSlug}/${slug}`)) slug = `${g.slug}-${n++}`;
+    if (slug !== g.slug) {
+      console.warn(`  ⚠ 攻略のslug「${g.slug}」が重複しているため「${slug}」に変更しました（${g.title}）`);
+      g.slug = slug;
+    }
+    used.add(`${g.gameSlug}/${slug}`);
+
+    // いいね・コメント用のID（日記のslugとぶつからないよう g- を付ける）
+    g.apiId = `g-${g.gameSlug}-${g.slug}`.slice(0, 100).replace(/-+$/, "");
+    g.imageKey = `guide-${g.gameSlug}-${g.slug}`;
+  }
+
+  return shown;
+}
+
+module.exports = { fetchArticles, fetchGuides, normalizeRecord, sanitizeSlug, isReleased };

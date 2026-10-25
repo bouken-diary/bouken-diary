@@ -1,5 +1,6 @@
 // コメントの管理ページ（https://bouken-api.〇〇.workers.dev/admin）
-// パスワード（ADMIN_TOKEN）を入れると、承認待ちのコメントの承認・返信・削除ができる。
+// パスワード（ADMIN_TOKEN）を入れると、承認待ちのコメントの承認・返信・削除と、
+// 記事ごとのいいね数のランキングが見られる。
 // パスワードはこのページのブラウザにだけ保存される。
 
 export function adminPage() {
@@ -20,7 +21,7 @@ const ADMIN_HTML = `<!doctype html>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
-<title>コメント管理｜ぼうけん日記</title>
+<title>ブログ管理｜ぼうけん日記</title>
 <style>
   :root {
     --paper: #eef2ec; --surface: #fff; --ink: #263228; --muted: #5e6b60;
@@ -59,11 +60,26 @@ const ADMIN_HTML = `<!doctype html>
   .reply { display: grid; gap: 0.5rem; margin-top: 0.75rem; }
   .reply textarea { width: 100%; min-height: 6rem; padding: 0.55rem 0.7rem; border: 1px solid var(--line); border-radius: 6px; }
   .empty { color: var(--muted); }
+  .summary { display: flex; gap: 1.5rem; background: var(--window); color: #fff; border-radius: 8px;
+    padding: 0.9rem 1.1rem; margin-bottom: 0.9rem; }
+  .summary strong { display: block; font-size: 1.5rem; color: var(--gold); line-height: 1.3; }
+  .ranking { list-style: none; margin: 0; padding: 0; }
+  .rank { display: grid; grid-template-columns: 2.2rem 1fr auto; gap: 0.75rem; align-items: center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 0.7rem 0.9rem; margin-bottom: 0.5rem; }
+  .rank-no { font-weight: 700; color: var(--muted); text-align: center; }
+  .rank.top .rank-no { color: #000; background: var(--gold); border-radius: 50%; width: 2rem; height: 2rem;
+    display: grid; place-items: center; }
+  .rank-title { display: grid; gap: 0.1rem; min-width: 0; }
+  .rank-title a { color: var(--ink); font-weight: 700; text-decoration: none; overflow-wrap: anywhere; }
+  .rank-title a:hover { color: var(--grass); text-decoration: underline; }
+  .rank-sub { font-size: 0.78rem; color: var(--muted); }
+  .rank-nums { text-align: right; white-space: nowrap; font-size: 0.9rem; }
+  .rank-nums .likes { font-weight: 700; font-size: 1.05rem; }
 </style>
 </head>
 <body>
 <main>
-  <h1>コメント管理</h1>
+  <h1>ブログ管理</h1>
 
   <section class="login" id="login" hidden>
     <label for="token">管理パスワード（ADMIN_TOKEN）</label>
@@ -76,6 +92,7 @@ const ADMIN_HTML = `<!doctype html>
     <div class="bar" role="tablist">
       <button class="tab" role="tab" data-status="pending" type="button">承認待ち</button>
       <button class="tab" role="tab" data-status="approved" type="button">公開中</button>
+      <button class="tab" role="tab" data-status="likes" type="button">いいね</button>
       <span class="spacer"></span>
       <button id="reload" type="button">更新</button>
       <button id="logout" type="button">ログアウト</button>
@@ -130,7 +147,7 @@ const ADMIN_HTML = `<!doctype html>
 
     const meta = el("div", "meta");
     const link = el("a", "", c.slug);
-    link.href = siteUrl.replace(/\\/+$/, "") + "/articles/" + c.slug + "/#comments";
+    link.href = siteUrl.replace(/\\/+$/, "") + "/" + (c.path || "articles/" + c.slug + "/") + "#comments";
     link.target = "_blank";
     link.rel = "noopener";
     meta.append(link, el("span", "", formatDate(c.createdAt)));
@@ -197,9 +214,58 @@ const ADMIN_HTML = `<!doctype html>
     }
   }
 
+  function renderLikes(data) {
+    const list = $("list");
+    list.replaceChildren();
+
+    const summary = el("div", "summary");
+    const likesBox = el("div", "", "いいね合計");
+    likesBox.prepend(el("strong", "", String(data.totalLikes)));
+    const commentsBox = el("div", "", "公開中のコメント");
+    commentsBox.prepend(el("strong", "", String(data.totalComments)));
+    summary.append(likesBox, commentsBox);
+    list.append(summary);
+
+    if (!data.articles.length) {
+      list.append(el("p", "empty", "まだ記事がありません。"));
+      return;
+    }
+
+    const ol = el("ol", "ranking");
+    data.articles.forEach((a, i) => {
+      // いいねがある上位3つだけ金色にする
+      const li = el("li", "rank" + (i < 3 && a.likes > 0 ? " top" : ""));
+      li.append(el("span", "rank-no", String(i + 1)));
+
+      const title = el("div", "rank-title");
+      const link = el("a", "", a.title || a.slug);
+      link.href = data.siteUrl.replace(/\\/+$/, "") + "/" + (a.path || "articles/" + a.slug + "/");
+      link.target = "_blank";
+      link.rel = "noopener";
+      title.append(link, el("span", "rank-sub", [a.type === "guide" ? "攻略" : "", a.series, a.slug].filter(Boolean).join("　")));
+      li.append(title);
+
+      const nums = el("div", "rank-nums");
+      nums.append(el("div", "likes", "♥ " + a.likes), el("div", "rank-sub", "コメント " + a.comments));
+      li.append(nums);
+      ol.append(li);
+    });
+    list.append(ol);
+  }
+
   async function load(clearStatus) {
     if (clearStatus !== false) $("status").textContent = "読み込み中…";
     document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.status === current)));
+    if (current === "likes") {
+      try {
+        renderLikes(await api("/likes"));
+        if (clearStatus !== false) $("status").textContent = "いいねが多い順";
+        show("app");
+      } catch (e) {
+        if (e.message !== "unauthorized") $("status").textContent = "読み込めませんでした（" + e.message + "）";
+      }
+      return;
+    }
     try {
       const data = await api("/comments?status=" + current);
       const list = $("list");

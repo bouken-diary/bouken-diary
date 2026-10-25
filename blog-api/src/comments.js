@@ -10,8 +10,9 @@
 //   POST /admin/api/comments/<id>/approve
 //   POST /admin/api/comments/<id>/reply   {body}
 //   POST /admin/api/comments/<id>/delete
+//   GET  /admin/api/likes                       → 記事ごとのいいね数・コメント数のランキング
 
-import { json, hashedIp, readJson, articleExists, sha256Hex } from "./lib.js";
+import { json, hashedIp, readJson, articleExists, loadArticleIndex, sha256Hex } from "./lib.js";
 
 const NAME_MAX = 30;
 const BODY_MAX = 1000;
@@ -157,10 +158,46 @@ async function isAdmin(request, env) {
   return diff === 0;
 }
 
-export async function handleAdminApi(request, env, url) {
+export async function handleAdminApi(request, env, url, ctx) {
   if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
 
   const path = url.pathname.replace(/^\/admin\/api/, "");
+
+  if (request.method === "GET" && path === "/likes") {
+    const [likes, comments] = await env.DB.batch([
+      env.DB.prepare("SELECT slug, count FROM likes WHERE count > 0"),
+      env.DB.prepare("SELECT slug, COUNT(*) AS n FROM comments WHERE status = 'approved' AND is_admin = 0 GROUP BY slug"),
+    ]);
+
+    // 記事のタイトルは公開中のサイトから取る。いいねもコメントもない記事も一覧に出す
+    const index = (await loadArticleIndex(env, ctx)) || [];
+    const rows = new Map();
+    index.forEach((a) =>
+      rows.set(a.slug, {
+        slug: a.slug,
+        path: a.path || `articles/${a.slug}/`,
+        title: a.title,
+        series: a.series || "",
+        type: a.type || "article",
+        likes: 0,
+        comments: 0,
+      })
+    );
+    const row = (slug) => {
+      if (!rows.has(slug)) rows.set(slug, { slug, path: `articles/${slug}/`, title: "", series: "", likes: 0, comments: 0 });
+      return rows.get(slug);
+    };
+    likes.results.forEach((r) => (row(r.slug).likes = r.count));
+    comments.results.forEach((r) => (row(r.slug).comments = r.n));
+
+    const articles = [...rows.values()].sort((a, b) => b.likes - a.likes || b.comments - a.comments);
+    return json({
+      siteUrl: env.SITE_URL || "",
+      totalLikes: articles.reduce((sum, a) => sum + a.likes, 0),
+      totalComments: articles.reduce((sum, a) => sum + a.comments, 0),
+      articles,
+    });
+  }
 
   if (request.method === "GET" && path === "/comments") {
     const status = url.searchParams.get("status") === "approved" ? "approved" : "pending";
@@ -172,11 +209,15 @@ export async function handleAdminApi(request, env, url) {
     )
       .bind(status)
       .all();
+    // 記事のURL（日記は /articles/、攻略は /guide/）を、公開中の一覧から引く
+    const index = (await loadArticleIndex(env, ctx)) || [];
+    const pathOf = new Map(index.map((a) => [a.slug, a.path || `articles/${a.slug}/`]));
     return json({
       siteUrl: env.SITE_URL || "",
       comments: results.map((r) => ({
         ...publicComment(r),
         slug: r.slug,
+        path: pathOf.get(r.slug) || `articles/${r.slug}/`,
         status: r.status,
         parentName: r.parent_name,
         parentBody: r.parent_body,

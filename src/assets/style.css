@@ -1026,6 +1026,322 @@ main {
   margin: 2rem auto;
 }
 
+
+/* =========================================================
+   トップ（攻略とブログの入口）
+   ========================================================= */
+
+.home-section {
+  margin-top: 3rem;
+}
+
+.home-section-title {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+  margin: 0 0 1rem;
+}
+
+.home-game + .home-game {
+  margin-top: 2rem;
+}
+
+.home-game-title {
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+}
+
+.home-game-title a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.home-game-title a:hover {
+  color: var(--grass);
+  text-decoration: underline;
+}
+
+.more-link {
+  margin: 0.75rem 0 0;
+  text-align: right;
+  font-size: 0.92rem;
+}
+
+.more-link a {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.more-link a:hover {
+  text-decoration: underline;
+}
+
+.blog-intro {
+  margin: 0.5rem 0 2rem;
+}
+
+.blog-intro .intro-series:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.lead {
+  color: var(--muted);
+  margin: 0.25rem 0 1.5rem;
+}
+
+/* =========================================================
+   攻略
+   ========================================================= */
+
+/* カード（トップ・ゲームの攻略トップ） */
+.guide-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.9rem;
+}
+
+.guide-card-link {
+  display: grid;
+  height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+}
+
+.guide-card-link:hover {
+  border-color: var(--grass);
+}
+
+.guide-card-thumb img,
+.guide-thumb-empty {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--line);
+}
+
+.guide-thumb-empty {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-pixel);
+  color: var(--muted);
+}
+
+.guide-card-text {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  padding: 0.7rem 0.85rem 0.85rem;
+}
+
+.guide-card-title {
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.guide-card-link:hover .guide-card-title {
+  color: var(--grass);
+  text-decoration: underline;
+}
+
+.guide-card-date {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.guide-category {
+  justify-self: start;
+  display: inline-block;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.05rem 0.5rem;
+  border-radius: 3px;
+  background: var(--grass);
+  color: #ffffff;
+}
+
+/* 攻略トップ */
+.game-block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.game-block-title {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.game-block-title a {
+  color: var(--ink);
+}
+
+.game-block-desc {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+/* ゲームごとの攻略トップ */
+.game-head {
+  margin: 0.5rem 0 2rem;
+}
+
+.list-section .game-title {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem;
+  color: var(--gold);
+}
+
+.guide-section-title {
+  font-size: 1.2rem;
+  margin: 2.25rem 0 0.9rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.category-nav {
+  margin-top: 2rem;
+}
+
+.guide-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.guide-rows a {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.8rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+
+.guide-row-title {
+  font-weight: 700;
+  color: var(--grass);
+}
+
+.guide-rows a:hover .guide-row-title {
+  text-decoration: underline;
+}
+
+.guide-row-excerpt {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+/* 攻略記事：日記より落ち着いた、資料らしい見出し */
+.guide-header {
+  margin: 0.25rem 0 1.75rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--gold);
+  border-radius: 6px;
+}
+
+.guide-title {
+  font-size: clamp(1.35rem, 3.6vw, 1.75rem);
+  line-height: 1.5;
+  margin: 0.35rem 0 0.4rem;
+}
+
+.guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.guide-lead {
+  margin: 0.75rem 0 0;
+  font-size: 0.95rem;
+}
+
+/* 関連リンク */
+.related-box {
+  margin-top: 2.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.related-title {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.related-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.related-list li + li {
+  margin-top: 0.3rem;
+}
+
+/* 表（攻略のデータ用）。横にはみ出すときは表の中だけスクロールする */
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 0 1.5em;
+}
+
+.body table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 28rem;
+  font-size: 0.92rem;
+  background: var(--surface);
+}
+
+.body th,
+.body td {
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.body th {
+  background: var(--paper);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .guide-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .guide-card-text {
+    padding: 0.55rem 0.6rem 0.7rem;
+  }
+
+  .guide-card-title {
+    font-size: 0.92rem;
+  }
+}
+
 /* ---------- スマホ ---------- */
 
 @media (max-width: 600px) {

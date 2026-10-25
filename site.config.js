@@ -5,7 +5,7 @@ module.exports = {
   siteName: process.env.SITE_NAME || "ぼうけん日記",
   description:
     process.env.SITE_DESCRIPTION ||
-    "ゲームや気になったことを、のんびり冒険するように記録するブログ。いまはマイクラのドラクエMOD「DQM6」のプレイ日記を連載中です。",
+    "ゲームや気になったことを、のんびり冒険するように記録するブログ。マイクラのドラクエMOD「DQM6」のプレイ日記と、「DQM7」の攻略をのせています。",
 
   // 公開URL（末尾スラッシュなし）。sitemap.xml や OGP の絶対URLに使う。
   siteUrl: (process.env.SITE_URL || "https://example.com").replace(/\/+$/, ""),
@@ -31,8 +31,15 @@ module.exports = {
   series: {
     "マイクラDQM6編": {
       slug: "dqm6",
+      versionLabel: "DQM6",
       description:
         "マイクラのドラクエMOD「DQM6」を、初見でのんびり遊ぶプレイ日記です。仲間になったモンスターとの冒険や、配合・建築で試したことを1日ずつ記録しています。",
+    },
+    "マイクラDQM7編": {
+      slug: "dqm7",
+      versionLabel: "DQM7",
+      description:
+        "マイクラのドラクエMOD「DQM7」を、のんびり遊ぶプレイ日記です。仲間モンスターとの冒険や、モンスターポート・建築で試したことを1日ずつ記録しています。",
     },
   },
 
@@ -42,6 +49,20 @@ module.exports = {
 
   // コメント欄を出すかどうか（APIを設定していても、コメントだけ止めたいときは false にする）
   comments: true,
+
+  // 攻略のゲームの設定。キーはAirtableの Guides テーブルの game 列の選択肢と同じ名前にする。
+  //   slug        : ゲーム別攻略のURL（/guide/dqm7/）に使う
+  //   name        : ゲーム別攻略ページの見出し
+  //   description : ゲーム別攻略ページの冒頭に表示する説明
+  //   categories  : カテゴリの並び順（ここにないカテゴリは後ろに並ぶ）
+  guides: {
+    DQM7: {
+      slug: "dqm7",
+      name: "マイクラ ドラクエ7MOD（DQM7）攻略",
+      description: "マイクラのドラクエMOD「DQM7」を実際に遊んで、つまずいたところやわかったことをまとめています。",
+      categories: ["はじめに", "モンスター・配合", "建築・ポート", "ダンジョン", "小ネタ"],
+    },
+  },
 
   // SNSのアカウント（IDだけを書く。空にすると表示しない）
   //   x    : Xのユーザー名（@の後ろ）。例: "bouken_diary"

@@ -130,7 +130,7 @@ async function processArticleImages(articles, { cacheDir, outDir, publicPrefix }
     const target = processed[i];
 
     if (article.topImage) {
-      addJob(article, article.topImage, `${article.slug}/top`, (img) => {
+      addJob(article, article.topImage, `${article.imageKey || article.slug}/top`, (img) => {
         target.topImage = img;
       });
     }
@@ -138,7 +138,7 @@ async function processArticleImages(articles, { cacheDir, outDir, publicPrefix }
     for (const [num, attachments] of Object.entries(article.imageGroups || {})) {
       target.imageGroups[num] = new Array(attachments.length).fill(null);
       attachments.forEach((attachment, j) => {
-        addJob(article, attachment, `${article.slug}/${num}-${j + 1}`, (img) => {
+        addJob(article, attachment, `${article.imageKey || article.slug}/${num}-${j + 1}`, (img) => {
           target.imageGroups[num][j] = img;
         });
       });

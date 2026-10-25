@@ -13,7 +13,7 @@ const fs = require("fs/promises");
 const path = require("path");
 
 const config = require("../site.config");
-const { fetchArticles } = require("./airtable");
+const { fetchArticles, fetchGuides } = require("./airtable");
 const { processArticleImages } = require("./images");
 const { createBodyRenderer, bodyToPlainText } = require("./render-body");
 const { createTemplates } = require("./templates");
@@ -118,6 +118,39 @@ function groupTags(articles) {
     });
 }
 
+function isoDay(raw) {
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
+// 攻略記事をゲームごとにまとめる。site.config.js の guides に書いた順に並べる。
+// ゲームの中は、カテゴリの順 → order（並び順）→ タイトルの順。
+function groupGames(guides) {
+  const conf = config.guides || {};
+  const map = new Map();
+  for (const g of guides) {
+    if (!map.has(g.game)) map.set(g.game, { name: g.game, slug: g.gameSlug, guides: [] });
+    map.get(g.game).guides.push(g);
+  }
+  const order = Object.keys(conf);
+  const games = [...map.values()].sort((a, b) => {
+    const ia = order.indexOf(a.name);
+    const ib = order.indexOf(b.name);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+  for (const game of games) {
+    const cats = (conf[game.name] && conf[game.name].categories) || [];
+    const ci = (c) => (cats.indexOf(c) === -1 ? 999 : cats.indexOf(c));
+    game.guides.sort(
+      (a, b) =>
+        ci(a.category) - ci(b.category) ||
+        (a.order ?? 9999) - (b.order ?? 9999) ||
+        a.title.localeCompare(b.title, "ja")
+    );
+  }
+  return games;
+}
+
 // 記事をシリーズごとにまとめる（古い順のまま）。シリーズなしはキー "" に入る。
 function groupSeries(articles) {
   const map = new Map();
@@ -200,6 +233,15 @@ async function main() {
   });
   console.log(`  公開記事: ${rawArticles.length}件`);
 
+  console.log("▶ 攻略記事を取得しています");
+  const rawGuides = await fetchGuides({
+    fixture: args.fixture,
+    guidesConfig: config.guides || {},
+    includeDrafts: DRAFTS,
+  });
+  console.log(`  攻略記事: ${rawGuides.length}件`);
+  config.hasGuides = rawGuides.length > 0;
+
   console.log("▶ 出力フォルダを準備しています");
   await fs.rm(OUT_DIR, { recursive: true, force: true });
   await fs.mkdir(OUT_DIR, { recursive: true });
@@ -210,7 +252,21 @@ async function main() {
     outDir: OUT_DIR,
     publicPrefix: templates.url(),
   });
-  console.log(`  画像: ${imageCount}枚`);
+  const guideImages = await processArticleImages(rawGuides, {
+    cacheDir: CACHE_DIR,
+    outDir: OUT_DIR,
+    publicPrefix: templates.url(),
+  });
+  const guides = guideImages.articles;
+  console.log(`  画像: ${imageCount + guideImages.imageCount}枚`);
+
+  // 攻略 ⇔ 日記の関連づけ（攻略の related_articles から、日記側にも逆向きのリンクを作る）
+  const articleById = new Map(articles.map((a) => [a.id, a]));
+  for (const a of articles) a.relatedGuides = [];
+  for (const g of guides) {
+    g.relatedArticles = g.relatedIds.map((id) => articleById.get(id)).filter(Boolean);
+    g.relatedArticles.forEach((a) => a.relatedGuides.push(g));
+  }
 
   console.log("▶ ページを書き出しています");
   const sitemap = [{ path: "", lastmod: "" }];
@@ -261,8 +317,41 @@ async function main() {
     sitemap.push({ path: urlPath });
   }
 
-  // トップページ
-  await writePage("index.html", templates.indexPage({ articles, tags, seriesList }));
+  // 攻略ページ
+  const games = groupGames(guides);
+  for (const game of games) {
+    const byCategory = new Map();
+    game.guides.forEach((g) => {
+      const key = g.category || "その他";
+      if (!byCategory.has(key)) byCategory.set(key, []);
+      byCategory.get(key).push(g);
+    });
+    for (const guide of game.guides) {
+      const { html, headings } = renderer.buildBodyHtml(guide);
+      const page = templates.guidePage({
+        guide,
+        bodyHtml: html,
+        tocHtml: renderer.buildTocHtml(headings),
+        galleryHtml: renderer.buildGalleryHtml(guide),
+        sameCategory: byCategory.get(guide.category || "その他"),
+      });
+      const urlPath = templates.guidePath(guide);
+      await writePage(toFilePath(urlPath), page);
+      sitemap.push({ path: urlPath, lastmod: isoDay(guide.updatedAt) });
+    }
+    const gamePath = templates.gamePath(game.slug);
+    await writePage(toFilePath(gamePath), templates.gamePage({ game }));
+    sitemap.push({ path: gamePath });
+  }
+  if (games.length) {
+    await writePage(toFilePath(templates.guideRootPath), templates.guideTopPage({ games }));
+    sitemap.push({ path: templates.guideRootPath });
+  }
+
+  // ブログの一覧と、サイトのトップ
+  await writePage(toFilePath(templates.blogPath), templates.blogIndexPage({ articles, tags, seriesList }));
+  sitemap.push({ path: templates.blogPath });
+  await writePage("index.html", templates.homePage({ articles, guides, games, seriesList }));
 
   // 固定ページ（about / privacy / contact）
   for (const page of await loadStaticPages()) {
@@ -275,13 +364,26 @@ async function main() {
   console.log("▶ 検索データ・サイト情報を書き出しています");
 
   // 検索用JSON（本文はマークアップを除いた素のテキスト）
-  const searchIndex = articles.map((a) => ({
-    slug: a.slug,
-    title: a.title,
-    series: a.series,
-    tags: a.tags,
-    text: `${a.excerpt} ${bodyToPlainText(a.body)}`.trim(),
-  }));
+  // （いいね・コメントのAPIも、このファイルで実在する記事かを確認している。攻略は slug に apiId を入れる）
+  const searchIndex = [
+    ...articles.map((a) => ({
+      slug: a.slug,
+      path: templates.articlePath(a),
+      title: a.title,
+      series: a.series,
+      tags: a.tags,
+      text: `${a.excerpt} ${bodyToPlainText(a.body)}`.trim(),
+    })),
+    ...guides.map((g) => ({
+      slug: g.apiId,
+      type: "guide",
+      path: templates.guidePath(g),
+      title: g.title,
+      series: g.game,
+      tags: g.category ? [g.category] : [],
+      text: `${g.excerpt} ${bodyToPlainText(g.body)}`.trim(),
+    })),
+  ];
   await writePage("search-index.json", JSON.stringify(searchIndex));
 
   if (config.siteUrl.includes("example.com")) {

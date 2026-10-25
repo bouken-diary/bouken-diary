@@ -11,6 +11,7 @@
 //   >>囲み<<                   → ドラクエ風メッセージウィンドウ
 //   【写真1】 / [写真1]         → image 1 の画像を差し込む
 //   【写真1】>キャプション<     → キャプション付き写真
+//   | 見出し | 見出し |          → 表（2行目に |---|---| を書く）
 //
 // 変更点
 //   ・_文字_ の斜体は削除（iron_ingot などのアイテムIDが崩れるため）
@@ -173,10 +174,42 @@ function createBodyRenderer({ basePath = "/" } = {}) {
     return `<p>${renderInlineMarkdown(esc(plain))}</p>`;
   }
 
+  // 表：すべての行が | で始まり、2行目が |---|---| の段落を表にする（攻略記事のデータ用）
+  //   | モンスター | ランク | 入手場所 |
+  //   |---|---|---|
+  //   | スライム | F | 草原 |
+  function renderTable(lines) {
+    const cells = (line) =>
+      line
+        .trim()
+        .replace(/^\|/, "")
+        .replace(/\|$/, "")
+        .split("|")
+        .map((c) => c.trim());
+    const head = cells(lines[0]);
+    const rows = lines.slice(2).map(cells);
+    const th = head.map((c) => `<th scope="col">${renderInlineMarkdown(esc(c))}</th>`).join("");
+    const tr = rows
+      .map((r) => `<tr>${head.map((_, i) => `<td>${renderInlineMarkdown(esc(r[i] || ""))}</td>`).join("")}</tr>`)
+      .join("");
+    return `<div class="table-wrap"><table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+  }
+
+  function isTable(lines) {
+    return (
+      lines.length >= 2 &&
+      lines.every((l) => l.trim().startsWith("|")) &&
+      /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(lines[1].trim())
+    );
+  }
+
   // 複数行の段落：「- 」で始まる行は箇条書き、それ以外は1行ずつ変換する。
   function renderTextParagraph(text) {
     const plain = String(text || "").trim();
     if (!plain) return "";
+
+    const allLines = plain.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    if (isTable(allLines)) return renderTable(allLines);
 
     const lines = plain.split(/\n+/).map((l) => l.trim()).filter(Boolean);
     if (lines.length <= 1) return renderSingleLine(plain);

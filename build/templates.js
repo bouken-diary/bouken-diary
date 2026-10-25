@@ -15,6 +15,14 @@ function createTemplates(config) {
   const xUrl = xId ? `https://x.com/${encodeURIComponent(xId)}` : "";
   const noteUrl = noteId ? `https://note.com/${encodeURIComponent(noteId)}` : "";
 
+  const guidesConfig = config.guides || {};
+  const blogPath = "blog/";
+  const guideRootPath = "guide/";
+  const gamePath = (gameSlug) => `guide/${gameSlug}/`;
+  const guidePath = (guide) => `guide/${guide.gameSlug}/${guide.slug}/`;
+  const gameInfo = (game) => guidesConfig[game] || {};
+  const gameTitle = (game) => gameInfo(game).name || `${game}の攻略`;
+
   const articlePath = (article) => `articles/${article.slug}/`;
   const tagPath = (tag) => `tags/${encodeURIComponent(tag)}/`;
   const seriesPath = (name) => {
@@ -64,7 +72,8 @@ function createTemplates(config) {
     <header class="site-header">
       <a class="site-title" href="${url()}">${esc(config.siteName)}</a>
       <nav class="site-nav" aria-label="サイト内">
-        <a href="${url()}">記事一覧</a>
+        ${config.hasGuides ? `<a href="${url(guideRootPath)}">攻略</a>` : ""}
+        <a href="${url(blogPath)}">ブログ</a>
         <a href="${url("about/")}">このブログについて</a>
       </nav>
     </header>`;
@@ -217,16 +226,56 @@ ${content}
         </li>`;
   }
 
-  function entryList(articles, { showSeries = true } = {}) {
-    return `<ol class="entry-list" id="entry-list">${articles.map((a) => entryItem(a, showSeries)).join("")}
+  function entryList(articles, { showSeries = true, id = "entry-list" } = {}) {
+    return `<ol class="entry-list" id="${id}">${articles.map((a) => entryItem(a, showSeries)).join("")}
       </ol>`;
   }
 
-  function indexPage({ articles, tags, seriesList }) {
-    const newestFirst = [...articles].reverse();
+  function dateValue(raw) {
+    const t = Date.parse(raw);
+    return Number.isNaN(t) ? 0 : t;
+  }
 
-    // 連載中のシリーズごとに「最新」と「1日目から」への案内を出す
-    const seriesLines = seriesList
+  // ---------- 攻略の一覧パーツ ----------
+
+  function guideCard(g) {
+    const img = g.topImage || (g.gallery && g.gallery[0]);
+    const thumb = img
+      ? `<img src="${esc(img.thumb)}" width="${img.thumbWidth}" height="${img.thumbHeight}" alt="" loading="lazy" decoding="async" />`
+      : `<span class="guide-thumb-empty" aria-hidden="true">${esc(g.category || g.game)}</span>`;
+    return `
+          <li class="guide-card">
+            <a class="guide-card-link" href="${url(guidePath(g))}">
+              <span class="guide-card-thumb">${thumb}</span>
+              <span class="guide-card-text">
+                ${g.category ? `<span class="guide-category">${esc(g.category)}</span>` : ""}
+                ${statusLabel(g) ? `<span class="preview-badge">${esc(statusLabel(g))}</span>` : ""}
+                <span class="guide-card-title">${esc(g.title)}</span>
+                <span class="guide-card-date">更新：${formatDate(g.updatedAt)}</span>
+              </span>
+            </a>
+          </li>`;
+  }
+
+  function guideCardList(guides) {
+    return `<ul class="guide-cards">${guides.map(guideCard).join("")}
+        </ul>`;
+  }
+
+  function guideRow(g) {
+    return `
+          <li class="guide-row">
+            <a href="${url(guidePath(g))}">
+              <span class="guide-row-title">${esc(g.title)}</span>
+              ${statusLabel(g) ? `<span class="preview-badge">${esc(statusLabel(g))}</span>` : ""}
+              ${g.excerpt ? `<span class="guide-row-excerpt">${esc(g.excerpt)}</span>` : ""}
+            </a>
+          </li>`;
+  }
+
+  // シリーズごとの「さいしん」「はじめから読む」の案内（トップとブログ一覧で使う）
+  function seriesIntro(seriesList) {
+    return seriesList
       .map((s) => {
         const latest = s.articles[s.articles.length - 1];
         const first = s.articles[0];
@@ -238,18 +287,60 @@ ${content}
           </div>`;
       })
       .join("");
+  }
+
+  // サイトのトップ：攻略とブログの入口
+  function homePage({ articles, guides, games, seriesList }) {
+    const latestPosts = [...articles].reverse().slice(0, 5);
+
+    const guideBlocks = games
+      .map((g) => {
+        const list = [...g.guides].sort((a, b) => dateValue(b.updatedAt) - dateValue(a.updatedAt)).slice(0, 6);
+        return `
+          <div class="home-game">
+            <h3 class="home-game-title"><a href="${url(gamePath(g.slug))}">${esc(gameTitle(g.name))}</a></h3>
+            ${guideCardList(list)}
+            <p class="more-link"><a href="${url(gamePath(g.slug))}">${esc(g.name)}の攻略をすべて見る ▶</a></p>
+          </div>`;
+      })
+      .join("");
 
     const content = `
       <section class="intro">
         <div class="msg-window">
           <p>${esc(config.description)}</p>
-          ${seriesLines}
+          ${seriesIntro(seriesList)}
         </div>
       </section>
 
+      ${
+        guides.length
+          ? `<section class="home-section" aria-labelledby="home-guides">
+        <h2 id="home-guides" class="home-section-title">攻略</h2>
+        ${guideBlocks}
+      </section>`
+          : ""
+      }
+
+      <section class="home-section" aria-labelledby="home-blog">
+        <h2 id="home-blog" class="home-section-title">ブログ</h2>
+        ${latestPosts.length ? entryList(latestPosts, { id: "home-list" }) : '<p class="empty">まだ公開された記事はありません。</p>'}
+        <p class="more-link"><a href="${url(blogPath)}">ブログの記事をすべて見る ▶</a></p>
+      </section>`;
+
+    return layout({ path: "", content });
+  }
+
+  // ブログの記事一覧（検索・タグつき）
+  function blogIndexPage({ articles, tags, seriesList }) {
+    const newestFirst = [...articles].reverse();
+
+    const content = `
       <section class="list-section" aria-labelledby="list-heading">
+        <p class="breadcrumb"><a href="${url()}">トップ</a> ／ ブログ</p>
+        ${seriesList.length ? `<div class="msg-window blog-intro">${seriesIntro(seriesList)}</div>` : ""}
         <div class="list-head">
-          <h1 id="list-heading">記事一覧</h1>
+          <h1 id="list-heading">ブログ</h1>
           <div class="search">
             <label for="search-input">記事をさがす</label>
             <input id="search-input" type="search" placeholder="モンスター名・アイテム名など" autocomplete="off" />
@@ -260,7 +351,13 @@ ${content}
         ${articles.length ? entryList(newestFirst) : '<p class="empty">まだ公開された記事はありません。Airtableで visible にチェックを入れると、次のビルドでここに並びます。</p>'}
       </section>`;
 
-    return layout({ path: "", content, scripts: ["assets/search.js"] });
+    return layout({
+      title: "ブログ",
+      description: `${config.siteName}のプレイ日記・ブログの記事一覧です。`,
+      path: blogPath,
+      content,
+      scripts: ["assets/search.js"],
+    });
   }
 
   // シリーズページ：連載なので1日目から順番に並べる
@@ -271,7 +368,7 @@ ${content}
 
     const content = `
       <section class="list-section">
-        <p class="breadcrumb"><a href="${url()}">記事一覧</a> ／ シリーズ</p>
+        <p class="breadcrumb"><a href="${url()}">トップ</a> ／ <a href="${url(blogPath)}">ブログ</a> ／ シリーズ</p>
         <div class="series-head msg-window">
           <h1 class="series-title">${esc(name)}</h1>
           ${info.description ? `<p>${esc(info.description)}</p>` : ""}
@@ -295,7 +392,7 @@ ${content}
   function tagPage({ tag, articles }) {
     const content = `
       <section class="list-section">
-        <p class="breadcrumb"><a href="${url()}">記事一覧</a> ／ タグ</p>
+        <p class="breadcrumb"><a href="${url()}">トップ</a> ／ <a href="${url(blogPath)}">ブログ</a> ／ タグ</p>
         <h1>「${esc(tag)}」の記事 <span class="count">${articles.length}件</span></h1>
         ${entryList([...articles].reverse())}
       </section>`;
@@ -319,11 +416,11 @@ ${content}
   }
 
   // いいねボタン（APIのURLが設定されているときだけ）
-  function likeButton(article) {
+  function likeButton(article, apiId = article.slug) {
     if (!config.blogApi) return "";
     return `
         <div class="reactions">
-          <button type="button" class="like-button" data-api="${esc(config.blogApi)}" data-slug="${esc(article.slug)}" aria-pressed="false" disabled>
+          <button type="button" class="like-button" data-api="${esc(config.blogApi)}" data-slug="${esc(apiId)}" aria-pressed="false" disabled>
             <span class="like-heart" aria-hidden="true">♥</span>
             <span class="like-label">いいね</span>
             <span class="like-count" aria-live="polite"></span>
@@ -333,11 +430,11 @@ ${content}
   }
 
   // 記事の最後の「Xでお知らせしています」の案内（XのIDが設定されているときだけ）
-  function followBox(article) {
+  function followBox(article, { what, title, path } = {}) {
     if (!xUrl) return "";
-    const what = article.series ? `${article.series}の続き` : "新しい記事";
-    const shareText = encodeURIComponent(`${labeledTitle(article)}｜${config.siteName}`);
-    const shareUrl = encodeURIComponent(absUrl(articlePath(article)));
+    what = what || (article.series ? `${article.series}の続き` : "新しい記事");
+    const shareText = encodeURIComponent(`${title || labeledTitle(article)}｜${config.siteName}`);
+    const shareUrl = encodeURIComponent(absUrl(path || articlePath(article)));
     return `
         <aside class="follow-box" aria-label="Xでのお知らせ">
           <p class="follow-text">${esc(what)}は、Xでお知らせしています。</p>
@@ -349,10 +446,10 @@ ${content}
   }
 
   // コメント欄（APIのURLが設定されているときだけ）。表示と投稿は assets/comments.js が行う
-  function commentSection(article) {
+  function commentSection(article, apiId = article.slug) {
     if (!config.blogApi || config.comments === false) return "";
     return `
-        <section class="comments" id="comments" aria-labelledby="comments-heading" data-api="${esc(config.blogApi)}" data-slug="${esc(article.slug)}">
+        <section class="comments" id="comments" aria-labelledby="comments-heading" data-api="${esc(config.blogApi)}" data-slug="${esc(apiId)}">
           <h2 id="comments-heading">コメント</h2>
           <div class="comment-list" aria-live="polite"><p class="comment-empty">コメントを読み込んでいます…</p></div>
 
@@ -396,12 +493,172 @@ ${content}
         </nav>`;
   }
 
+  // 日記の最後に出す「この日記に関係する攻略」
+  function relatedGuides(guides) {
+    if (!guides || !guides.length) return "";
+    return `
+        <aside class="related-box" aria-labelledby="related-guides">
+          <h2 id="related-guides" class="related-title">この日記に関係する攻略</h2>
+          <ul class="related-list">${guides.map((g) => `<li><a href="${url(guidePath(g))}">${esc(g.title)}</a></li>`).join("")}</ul>
+        </aside>`;
+  }
+
+  // 攻略の最後に出す「この攻略が出てくる日記」
+  function relatedArticles(articles) {
+    if (!articles || !articles.length) return "";
+    return `
+        <aside class="related-box" aria-labelledby="related-articles">
+          <h2 id="related-articles" class="related-title">実際に遊んだ日記</h2>
+          <ul class="related-list">${articles.map((a) => `<li><a href="${url(articlePath(a))}">${esc(labeledTitle(a))}</a></li>`).join("")}</ul>
+        </aside>`;
+  }
+
+  // ---------- 攻略ページ ----------
+
+  // 攻略トップ（ゲームの一覧）
+  function guideTopPage({ games }) {
+    const content = `
+      <section class="list-section">
+        <p class="breadcrumb"><a href="${url()}">トップ</a> ／ 攻略</p>
+        <h1>攻略</h1>
+        <p class="lead">実際に遊んで、つまずいたところやわかったことをまとめた攻略です。</p>
+        ${games
+          .map(
+            (g) => `
+        <section class="game-block">
+          <h2 class="game-block-title"><a href="${url(gamePath(g.slug))}">${esc(gameTitle(g.name))}</a></h2>
+          ${gameInfo(g.name).description ? `<p class="game-block-desc">${esc(gameInfo(g.name).description)}</p>` : ""}
+          <p class="more-link"><a href="${url(gamePath(g.slug))}">攻略記事 ${g.guides.length}件を見る ▶</a></p>
+        </section>`
+          )
+          .join("")}
+      </section>`;
+    return layout({
+      title: "攻略",
+      description: `${config.siteName}のゲーム攻略の一覧です。`,
+      path: guideRootPath,
+      content,
+    });
+  }
+
+  // ゲームごとの攻略トップ（カテゴリごとに並べる）
+  function gamePage({ game }) {
+    const info = gameInfo(game.name);
+    const order = info.categories || [];
+    const byCategory = new Map();
+    for (const g of game.guides) {
+      const key = g.category || "その他";
+      if (!byCategory.has(key)) byCategory.set(key, []);
+      byCategory.get(key).push(g);
+    }
+    const categories = [...byCategory.keys()].sort((a, b) => {
+      const ia = order.indexOf(a);
+      const ib = order.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+    const recent = [...game.guides].sort((a, b) => dateValue(b.updatedAt) - dateValue(a.updatedAt)).slice(0, 4);
+
+    const content = `
+      <section class="list-section">
+        <p class="breadcrumb"><a href="${url()}">トップ</a> ／ <a href="${url(guideRootPath)}">攻略</a> ／ ${esc(game.name)}</p>
+        <div class="msg-window game-head">
+          <h1 class="game-title">${esc(gameTitle(game.name))}</h1>
+          ${info.description ? `<p>${esc(info.description)}</p>` : ""}
+        </div>
+
+        <h2 class="guide-section-title">最近更新された攻略</h2>
+        ${guideCardList(recent)}
+
+        ${
+          categories.length > 1
+            ? `<nav class="category-nav" aria-label="カテゴリ"><ul class="tag-list">${categories
+                .map((c, i) => `<li><a href="#cat-${i + 1}">${esc(c)}</a></li>`)
+                .join("")}</ul></nav>`
+            : ""
+        }
+        ${categories
+          .map(
+            (c, i) => `
+        <section class="guide-category-block" id="cat-${i + 1}">
+          <h2 class="guide-section-title">${esc(c)}</h2>
+          <ul class="guide-rows">${byCategory.get(c).map(guideRow).join("")}
+          </ul>
+        </section>`
+          )
+          .join("")}
+      </section>`;
+
+    return layout({
+      title: gameTitle(game.name),
+      description: info.description || `${game.name}の攻略記事の一覧です。`,
+      path: gamePath(game.slug),
+      content,
+    });
+  }
+
+  // 攻略記事
+  function guidePage({ guide, bodyHtml, tocHtml, galleryHtml, sameCategory }) {
+    const meta = [
+      `<span>最終更新：<time datetime="${isoDate(guide.updatedAt)}">${formatDate(guide.updatedAt)}</time></span>`,
+      guide.version ? `<span>対応バージョン：${esc(guide.version)}</span>` : "",
+    ]
+      .filter(Boolean)
+      .join("");
+
+    const others = (sameCategory || []).filter((g) => g !== guide).slice(0, 8);
+
+    const content = `
+      <article class="article guide">
+        ${statusLabel(guide) ? `<p class="preview-banner">${esc(statusLabel(guide))}：この攻略はまだ公開されていません。</p>` : ""}
+        <p class="breadcrumb"><a href="${url()}">トップ</a> ／ <a href="${url(guideRootPath)}">攻略</a> ／ <a href="${url(gamePath(guide.gameSlug))}">${esc(guide.game)}</a>${guide.category ? ` ／ ${esc(guide.category)}` : ""}</p>
+        <header class="guide-header">
+          ${guide.category ? `<p class="guide-category">${esc(guide.category)}</p>` : ""}
+          <h1 class="guide-title">${esc(guide.title)}</h1>
+          <p class="guide-meta">${meta}</p>
+          ${guide.excerpt ? `<p class="guide-lead">${esc(guide.excerpt)}</p>` : ""}
+        </header>
+        ${tocHtml}
+        <div class="body">
+${bodyHtml || '<p class="empty">本文がまだありません。Airtableの body 列に書くとここに表示されます。</p>'}
+        </div>
+        ${galleryHtml}
+        ${relatedArticles(guide.relatedArticles)}
+        ${
+          others.length
+            ? `<aside class="related-box" aria-labelledby="same-category">
+          <h2 id="same-category" class="related-title">${esc(guide.category || guide.game)}のほかの攻略</h2>
+          <ul class="related-list">${others.map((g) => `<li><a href="${url(guidePath(g))}">${esc(g.title)}</a></li>`).join("")}</ul>
+        </aside>`
+            : ""
+        }
+        ${likeButton(guide, guide.apiId)}
+        ${followBox(guide, { what: "新しい攻略", title: guide.title, path: guidePath(guide) })}
+        ${commentSection(guide, guide.apiId)}
+      </article>`;
+
+    return layout({
+      title: `${guide.title}【${guide.game}】`,
+      description: guide.excerpt,
+      path: guidePath(guide),
+      ogImage: guide.topImage ? guide.topImage.src : guide.gallery[0] && guide.gallery[0].src,
+      ogType: "article",
+      content,
+      scripts: [
+        "assets/caption.js",
+        ...(config.blogApi ? ["assets/likes.js"] : []),
+        ...(config.blogApi && config.comments !== false ? ["assets/comments.js"] : []),
+      ],
+    });
+  }
+
   function articlePage({ article, bodyHtml, tocHtml, galleryHtml, prev, next }) {
     // top image は記事ページには出さず、一覧のサムネイルとリンク画像（OGP）にだけ使う
 
     const meta = [
       `<time datetime="${isoDate(article.publishedAt)}">${formatDate(article.publishedAt)}</time>`,
-      article.modVersion ? `<span>DQM6 ${esc(article.modVersion)}</span>` : "",
+      article.modVersion
+        ? `<span>${esc((seriesConfig[article.series] || {}).versionLabel || "Ver.")} ${esc(article.modVersion)}</span>`
+        : "",
     ]
       .filter(Boolean)
       .join("");
@@ -420,6 +677,7 @@ ${content}
 ${bodyHtml || '<p class="empty">本文がまだありません。Airtableの body 列に書くとここに表示されます。</p>'}
         </div>
         ${galleryHtml}
+        ${relatedGuides(article.relatedGuides)}
         ${likeButton(article)}
         ${followBox(article)}
         ${pager(article, prev, next)}
@@ -459,13 +717,21 @@ ${html}
       <section class="not-found msg-window">
         <p>しかし ページは みつからなかった！</p>
         <p>URLが変わったか、削除された可能性があります。</p>
-        <p><a href="${url()}">▶ 記事一覧へもどる</a></p>
+        <p><a href="${url()}">▶ トップへもどる</a></p>
       </section>`;
     return layout({ title: "ページが見つかりません", path: "404.html", content, noindex: true });
   }
 
   return {
-    indexPage,
+    homePage,
+    blogIndexPage,
+    guideTopPage,
+    gamePage,
+    guidePage,
+    gamePath,
+    guidePath,
+    blogPath,
+    guideRootPath,
     seriesPage,
     tagPage,
     articlePage,
