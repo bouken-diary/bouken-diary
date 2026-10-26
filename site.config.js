@@ -5,7 +5,7 @@ module.exports = {
   siteName: process.env.SITE_NAME || "ぼうけん日記",
   description:
     process.env.SITE_DESCRIPTION ||
-    "ゲームや気になったことを、のんびり冒険するように記録するブログ。マイクラのドラクエMOD「DQM6」のプレイ日記と、「DQM7」の攻略をのせています。",
+    "ゲームや気になったことを、のんびり冒険するように記録するブログ。マイクラのドラクエMOD「DQM6」のプレイ日記と攻略をのせています。",
 
   // 公開URL（末尾スラッシュなし）。sitemap.xml や OGP の絶対URLに使う。
   siteUrl: (process.env.SITE_URL || "https://example.com").replace(/\/+$/, ""),
@@ -56,6 +56,12 @@ module.exports = {
   //   description : ゲーム別攻略ページの冒頭に表示する説明
   //   categories  : カテゴリの並び順（ここにないカテゴリは後ろに並ぶ）
   guides: {
+    DQM6: {
+      slug: "dqm6",
+      name: "マイクラ ドラクエ6MOD（DQM6）攻略",
+      description: "マイクラのドラクエMOD「DQM6」を実際に遊んで、これから始める人がつまずきやすいところをまとめています。",
+      categories: ["導入・はじめかた", "序盤の進め方", "仲間・配合", "建築・クラフト", "ボス・ダンジョン", "困ったとき"],
+    },
     DQM7: {
       slug: "dqm7",
       name: "マイクラ ドラクエ7MOD（DQM7）攻略",
