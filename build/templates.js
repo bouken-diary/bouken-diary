@@ -129,7 +129,7 @@ function createTemplates(config) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${esc(fullTitle)}</title>
     <meta name="description" content="${esc(desc)}" />
-    ${noindex ? '<meta name="robots" content="noindex" />' : `<link rel="canonical" href="${esc(absUrl(path))}" />`}
+    ${noindex ? '<meta name="robots" content="noindex" />' : `<meta name="robots" content="max-image-preview:large" />\n    <link rel="canonical" href="${esc(absUrl(path))}" />`}
     <meta property="og:site_name" content="${esc(config.siteName)}" />
     <meta property="og:title" content="${esc(fullTitle)}" />
     <meta property="og:description" content="${esc(desc)}" />
