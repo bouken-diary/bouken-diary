@@ -130,6 +130,7 @@ function createTemplates(config) {
     <title>${esc(fullTitle)}</title>
     <meta name="description" content="${esc(desc)}" />
     ${noindex ? '<meta name="robots" content="noindex" />' : `<meta name="robots" content="max-image-preview:large" />\n    <link rel="canonical" href="${esc(absUrl(path))}" />`}
+    <link rel="alternate" type="application/rss+xml" title="${esc(config.siteName)}" href="${esc(absUrl("feed.xml"))}" />
     <meta property="og:site_name" content="${esc(config.siteName)}" />
     <meta property="og:title" content="${esc(fullTitle)}" />
     <meta property="og:description" content="${esc(desc)}" />
@@ -738,6 +739,7 @@ ${html}
     staticPage,
     notFoundPage,
     articlePath,
+    labeledTitle,
     tagPath,
     seriesPath,
     url,

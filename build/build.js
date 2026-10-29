@@ -15,7 +15,7 @@ const path = require("path");
 const config = require("../site.config");
 const { fetchArticles, fetchGuides } = require("./airtable");
 const { processArticleImages } = require("./images");
-const { createBodyRenderer, bodyToPlainText } = require("./render-body");
+const { createBodyRenderer, bodyToPlainText, esc } = require("./render-body");
 const { createTemplates } = require("./templates");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -204,6 +204,50 @@ function sitemapXml(entries, templates) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 
+// RSSフィード（feed.xml）。ブログ村などが新着記事を読みに来る。
+// 日記と攻略を公開日の新しい順に並べ、新しい20件だけを載せる。
+async function feedXml(items, templates) {
+  const latest = [...items]
+    .filter((item) => !Number.isNaN(Date.parse(item.publishedAt)))
+    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
+    .slice(0, 20);
+
+  const entries = [];
+  for (const item of latest) {
+    const link = templates.absUrl(item.path);
+    const image = item.image ? `${config.siteUrl}${item.image}` : "";
+    let enclosure = "";
+    if (image) {
+      // enclosure には画像のファイルサイズ（バイト数）が必要
+      const file = path.join(OUT_DIR, item.image.slice(config.basePath.length));
+      const size = await fs.stat(file).then((st) => st.size).catch(() => 0);
+      enclosure = `\n      <enclosure url="${esc(image)}" length="${size}" type="image/webp" />`;
+    }
+    entries.push(`    <item>
+      <title>${esc(item.title)}</title>
+      <link>${esc(link)}</link>
+      <guid isPermaLink="true">${esc(link)}</guid>
+      <pubDate>${new Date(item.publishedAt).toUTCString()}</pubDate>
+      <description>${esc(item.excerpt || "")}</description>${enclosure}
+    </item>`);
+  }
+
+  const lastBuild = latest.length ? new Date(latest[0].publishedAt).toUTCString() : new Date().toUTCString();
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${esc(config.siteName)}</title>
+    <link>${esc(templates.absUrl(""))}</link>
+    <description>${esc(config.description)}</description>
+    <language>ja</language>
+    <lastBuildDate>${lastBuild}</lastBuildDate>
+    <atom:link href="${esc(templates.absUrl("feed.xml"))}" rel="self" type="application/rss+xml" />
+${entries.join("\n")}
+  </channel>
+</rss>
+`;
+}
+
 async function main() {
   const started = Date.now();
   const args = parseArgs(process.argv.slice(2));
@@ -390,6 +434,28 @@ async function main() {
     console.warn("  ⚠ SITE_URL が未設定です。sitemap.xml と OGP のURLが example.com になっています");
   }
   await writePage("sitemap.xml", sitemapXml(sitemap, templates));
+  await writePage(
+    "feed.xml",
+    await feedXml(
+      [
+        ...articles.map((a) => ({
+          title: templates.labeledTitle(a),
+          path: templates.articlePath(a),
+          publishedAt: a.publishedAt,
+          excerpt: a.excerpt,
+          image: a.topImage ? a.topImage.src : a.gallery[0] && a.gallery[0].src,
+        })),
+        ...guides.map((g) => ({
+          title: `${g.title}【${g.game}】`,
+          path: templates.guidePath(g),
+          publishedAt: g.publishedAt,
+          excerpt: g.excerpt,
+          image: g.topImage ? g.topImage.src : g.gallery[0] && g.gallery[0].src,
+        })),
+      ],
+      templates
+    )
+  );
   await writePage("robots.txt", `User-agent: *\nAllow: /\n\nSitemap: ${templates.absUrl("sitemap.xml")}\n`);
 
   if (config.adsenseClient) {
