@@ -691,6 +691,38 @@ main {
   color: var(--muted);
 }
 
+/* ブログランキングのバナー */
+.ranking-box {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.ranking-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.ranking-banners {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 1rem 1.5rem;
+}
+
+.ranking-banner {
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.ranking-banner img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: bottom;
+}
+
 /* Xでのお知らせ */
 .follow-box {
   margin-top: 2rem;

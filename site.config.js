@@ -78,6 +78,19 @@ module.exports = {
     note: "bouken_diary",
   },
 
+  // ブログランキングのバナー（日記と攻略の記事の最後、いいねボタンの下に並べる）
+  // 各サービスでもらったバナーのHTMLを、そのまま貼る。空にしたものは表示しない。
+  // 全部空なら、ひとことも含めて何も表示しない。
+  ranking: {
+    message: "ランキングに参加しています。よかったら応援クリックお願いします！",
+    banners: [
+      // にほんブログ村
+      '<a href="https://game.blogmura.com/minecraft/ranking/in?p_cid=11219272" target="_blank"><img src="https://b.blogmura.com/game/minecraft/88_31.gif" width="88" height="31" border="0" alt="にほんブログ村 ゲームブログ Minecraftへ" /></a><br /><a href="https://game.blogmura.com/minecraft/ranking/in?p_cid=11219272" target="_blank">にほんブログ村</a>',
+      // 人気ブログランキング
+      '<a href="https://blog.with2.net/link/?id=2143089&follow" title="人気ブログランキングでフォロー"><img alt="人気ブログランキングでフォロー" width="296" height="46" src="https://blog.with2.net/banner/follow/2143089"></a>',
+    ],
+  },
+
   // 記事一覧でタグとして表示する順番（ここにないタグは後ろに並ぶ）
   tagOrder: ["序盤", "配合", "仲間", "建築", "ボス", "アップデート"],
 };

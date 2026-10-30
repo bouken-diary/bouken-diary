@@ -430,6 +430,20 @@ ${content}
         </div>`;
   }
 
+  // ブログランキングのバナー（site.config.js の ranking。空のバナーは出さない）
+  function rankingBox() {
+    const ranking = config.ranking || {};
+    const banners = (ranking.banners || []).map((b) => String(b || "").trim()).filter(Boolean);
+    if (!banners.length) return "";
+    return `
+        <aside class="ranking-box" aria-label="ブログランキング">
+          ${ranking.message ? `<p class="ranking-message">${esc(ranking.message)}</p>` : ""}
+          <div class="ranking-banners">
+            ${banners.map((b) => `<div class="ranking-banner">${b}</div>`).join("\n            ")}
+          </div>
+        </aside>`;
+  }
+
   // 記事の最後の「Xでお知らせしています」の案内（XのIDが設定されているときだけ）
   function followBox(article, { what, title, path } = {}) {
     if (!xUrl) return "";
@@ -633,6 +647,7 @@ ${bodyHtml || '<p class="empty">本文がまだありません。Airtableの bod
             : ""
         }
         ${likeButton(guide, guide.apiId)}
+        ${rankingBox()}
         ${followBox(guide, { what: "新しい攻略", title: guide.title, path: guidePath(guide) })}
         ${commentSection(guide, guide.apiId)}
       </article>`;
@@ -680,6 +695,7 @@ ${bodyHtml || '<p class="empty">本文がまだありません。Airtableの bod
         ${galleryHtml}
         ${relatedGuides(article.relatedGuides)}
         ${likeButton(article)}
+        ${rankingBox()}
         ${followBox(article)}
         ${pager(article, prev, next)}
         ${commentSection(article)}
