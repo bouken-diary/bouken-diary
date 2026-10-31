@@ -33,7 +33,7 @@ site.config.js     ブログ名などの設定
 | 列名 | 種類 | 内容 |
 | --- | --- | --- |
 | title（タイトル） | 1行テキスト | 記事タイトル |
-| series（シリーズ） | 単一選択 | 連載名。例: `マイクラDQM6編`。単発の記事は空でOK |
+| series（シリーズ） | 単一選択 | 連載名。例: `マイクラDQMVI編`。単発の記事は空でOK |
 | slug | 1行テキスト | URL用。空なら自動生成（シリーズ記事は `dqm6-day-001`、それ以外は `day-001` かレコードID） |
 | day（日目） | 数値 | プレイ日数。空なら日目の表示なし |
 | publishedAt（公開日） | 日付 | 並び順に使う |
@@ -60,7 +60,7 @@ Airtableの日付の列で時刻も使っている場合は、その時刻を過
 | --- | --- | --- |
 | title | 1行テキスト | 攻略記事のタイトル |
 | slug | 1行テキスト | URL用。例: `monster-port` → `/guide/dqm7/monster-port/` |
-| game | 単一選択 | ゲーム名。例: `DQM7`（site.config.js の guides と同じ名前） |
+| game | 単一選択 | ゲーム名。例: `DQMVII`（site.config.js の guides と同じ名前） |
 | category | 単一選択 | 例: はじめに / モンスター・配合 / 建築・ポート / ダンジョン / 小ネタ |
 | excerpt | 長文テキスト | 一覧と記事の冒頭に出る説明 |
 | body | 長文テキスト | 日記と同じ書き方。表も使える（下の例） |
@@ -84,9 +84,9 @@ Airtableの日付の列で時刻も使っている場合は、その時刻を過
 
 ```js
 guides: {
-  DQM7: {
+  DQMVII: {
     slug: "dqm7",
-    name: "マイクラ ドラクエ7MOD（DQM7）攻略",
+    name: "マイクラ ドラクエMOD「DQMVII（DQM7）」攻略",
     description: "攻略トップに出る説明",
     categories: ["はじめに", "モンスター・配合", "建築・ポート", "ダンジョン", "小ネタ"],
   },
@@ -100,7 +100,7 @@ guides: {
 
 ```js
 series: {
-  "マイクラDQM6編": { slug: "dqm6", versionLabel: "DQM6", description: "シリーズの説明" },
+  "マイクラDQMVI編": { slug: "dqm6", versionLabel: "DQMVI", description: "シリーズの説明" },
 },
 ```
 

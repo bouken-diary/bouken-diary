@@ -181,12 +181,12 @@ ${content}
     return article.day !== null && article.day !== undefined ? `${article.day}日目` : "";
   }
 
-  // 「マイクラDQM6編 12日目」のように、シリーズ名と日目をつなげたもの。
+  // 「マイクラDQMVI編 12日目」のように、シリーズ名と日目をつなげたもの。
   function fullLabel(article) {
     return [article.series, dayLabel(article)].filter(Boolean).join(" ");
   }
 
-  // 「マイクラDQM6編 12日目「タイトル」」。ラベルがなければタイトルだけ。
+  // 「マイクラDQMVI編 12日目「タイトル」」。ラベルがなければタイトルだけ。
   function labeledTitle(article) {
     const label = fullLabel(article);
     return label ? `${label}「${article.title}」` : article.title;

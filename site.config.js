@@ -5,7 +5,7 @@ module.exports = {
   siteName: process.env.SITE_NAME || "ぼうけん日記",
   description:
     process.env.SITE_DESCRIPTION ||
-    "ゲームや気になったことを、のんびり冒険するように記録するブログ。マイクラのドラクエMOD「DQM6」のプレイ日記と攻略をのせています。",
+    "ゲームや気になったことを、のんびり冒険するように記録するブログ。マイクラのドラクエMOD「DQMVI（DQM6）」のプレイ日記と攻略をのせています。",
 
   // 公開URL（末尾スラッシュなし）。sitemap.xml や OGP の絶対URLに使う。
   siteUrl: (process.env.SITE_URL || "https://example.com").replace(/\/+$/, ""),
@@ -29,17 +29,17 @@ module.exports = {
   //   description : シリーズページの冒頭に表示する説明
   // ここに書いていないシリーズも表示はされるが、URLが日本語になる。
   series: {
-    "マイクラDQM6編": {
+    "マイクラDQMVI編": {
       slug: "dqm6",
-      versionLabel: "DQM6",
+      versionLabel: "DQMVI",
       description:
-        "マイクラのドラクエMOD「DQM6」を、初見でのんびり遊ぶプレイ日記です。仲間になったモンスターとの冒険や、配合・建築で試したことを1日ずつ記録しています。",
+        "マイクラのドラクエMOD「DQMVI（DQM6）」を、初見でのんびり遊ぶプレイ日記です。仲間になったモンスターとの冒険や、配合・建築で試したことを1日ずつ記録しています。",
     },
-    "マイクラDQM7編": {
+    "マイクラDQMVII編": {
       slug: "dqm7",
-      versionLabel: "DQM7",
+      versionLabel: "DQMVII",
       description:
-        "マイクラのドラクエMOD「DQM7」を、のんびり遊ぶプレイ日記です。仲間モンスターとの冒険や、モンスターポート・建築で試したことを1日ずつ記録しています。",
+        "マイクラのドラクエMOD「DQMVII（DQM7）」を、のんびり遊ぶプレイ日記です。仲間モンスターとの冒険や、モンスターポート・建築で試したことを1日ずつ記録しています。",
     },
   },
 
@@ -56,16 +56,16 @@ module.exports = {
   //   description : ゲーム別攻略ページの冒頭に表示する説明
   //   categories  : カテゴリの並び順（ここにないカテゴリは後ろに並ぶ）
   guides: {
-    DQM6: {
+    DQMVI: {
       slug: "dqm6",
-      name: "マイクラ ドラクエ6MOD（DQM6）攻略",
-      description: "マイクラのドラクエMOD「DQM6」を実際に遊んで、これから始める人がつまずきやすいところをまとめています。",
+      name: "マイクラ ドラクエMOD「DQMVI（DQM6）」攻略",
+      description: "マイクラのドラクエMOD「DQMVI（DQM6）」を実際に遊んで、これから始める人がつまずきやすいところをまとめています。",
       categories: ["導入・はじめかた", "序盤の進め方", "仲間・配合", "建築・クラフト", "ボス・ダンジョン", "困ったとき"],
     },
-    DQM7: {
+    DQMVII: {
       slug: "dqm7",
-      name: "マイクラ ドラクエ7MOD（DQM7）攻略",
-      description: "マイクラのドラクエMOD「DQM7」を実際に遊んで、つまずいたところやわかったことをまとめています。",
+      name: "マイクラ ドラクエMOD「DQMVII（DQM7）」攻略",
+      description: "マイクラのドラクエMOD「DQMVII（DQM7）」を実際に遊んで、つまずいたところやわかったことをまとめています。",
       categories: ["はじめに", "モンスター・配合", "建築・ポート", "ダンジョン", "小ネタ"],
     },
   },
