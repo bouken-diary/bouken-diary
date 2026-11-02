@@ -8,6 +8,7 @@
     "build:sample": "node build/build.js --fixture fixtures/sample.json",
     "serve": "npx --yes serve dist",
     "preview": "node build/build.js --drafts && npx --yes serve preview -l 3000",
+    "report": "node scripts/analytics-report.js",
     "preview:sample": "node build/build.js --drafts --fixture fixtures/sample.json && npx --yes serve preview -l 3000"
   },
   "engines": {
