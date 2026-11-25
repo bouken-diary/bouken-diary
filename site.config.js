@@ -41,6 +41,11 @@ module.exports = {
       description:
         "マイクラのドラクエMOD「DQMVII（DQM7）」を、のんびり遊ぶプレイ日記です。仲間モンスターとの冒険や、モンスターポート・建築で試したことを1日ずつ記録しています。",
     },
+    "ゼルダ時オカ編": {
+      slug: "zelda-oot",
+      description:
+        "「ゼルダの伝説 時のオカリナ」のプレイ日記です。昔3DSで遊んだ時オカを、もう一度最初から遊んで、懐かしかったところや気づいたことを1日ずつ記録しています。",
+    },
   },
 
   // いいね・コメントのAPI（Cloudflare Worker のURL）。例: "https://bouken-api.xxxx.workers.dev"
