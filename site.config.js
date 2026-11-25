@@ -45,6 +45,9 @@ module.exports = {
       slug: "zelda-oot",
       description:
         "「ゼルダの伝説 時のオカリナ」のプレイ日記です。昔3DSで遊んだ時オカを、もう一度最初から遊んで、懐かしかったところや気づいたことを1日ずつ記録しています。",
+      // にほんブログ村（ゲームブログ ゼルダの伝説）
+      blogmura:
+        '<a href="https://game.blogmura.com/legendofzelda/ranking/in?p_cid=11219272" target="_blank"><img src="https://b.blogmura.com/game/legendofzelda/88_31.gif" width="88" height="31" border="0" alt="にほんブログ村 ゲームブログ ゼルダの伝説へ" /></a><br /><a href="https://game.blogmura.com/legendofzelda/ranking/in?p_cid=11219272" target="_blank">にほんブログ村</a>',
     },
   },
 
@@ -86,11 +89,14 @@ module.exports = {
   // ブログランキングのバナー（日記と攻略の記事の最後、いいねボタンの下に並べる）
   // 各サービスでもらったバナーのHTMLを、そのまま貼る。空にしたものは表示しない。
   // 全部空なら、ひとことも含めて何も表示しない。
+  //   blogmura : にほんブログ村のバナー。シリーズの設定に blogmura があれば、その記事ではそちらを使う
+  //   banners  : ほかのランキングのバナー（どの記事でも同じものを出す）
   ranking: {
     message: "ランキングに参加しています。よかったら応援クリックお願いします！",
-    banners: [
-      // にほんブログ村
+    // にほんブログ村（ゲームブログ Minecraft）
+    blogmura:
       '<a href="https://game.blogmura.com/minecraft/ranking/in?p_cid=11219272" target="_blank"><img src="https://b.blogmura.com/game/minecraft/88_31.gif" width="88" height="31" border="0" alt="にほんブログ村 ゲームブログ Minecraftへ" /></a><br /><a href="https://game.blogmura.com/minecraft/ranking/in?p_cid=11219272" target="_blank">にほんブログ村</a>',
+    banners: [
       // 人気ブログランキング
       '<a href="https://blog.with2.net/link/?id=2143089&follow" title="人気ブログランキングでフォロー"><img alt="人気ブログランキングでフォロー" width="296" height="46" src="https://blog.with2.net/banner/follow/2143089"></a>',
     ],

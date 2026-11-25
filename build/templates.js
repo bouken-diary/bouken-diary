@@ -431,9 +431,13 @@ ${content}
   }
 
   // ブログランキングのバナー（site.config.js の ranking。空のバナーは出さない）
-  function rankingBox() {
+  // ブログ村は、シリーズに blogmura の設定があればそちらを使う（例: ゼルダの日記ではゼルダのカテゴリ）
+  function rankingBox(series) {
     const ranking = config.ranking || {};
-    const banners = (ranking.banners || []).map((b) => String(b || "").trim()).filter(Boolean);
+    const seriesMura = series && seriesConfig[series] && seriesConfig[series].blogmura;
+    const banners = [seriesMura || ranking.blogmura, ...(ranking.banners || [])]
+      .map((b) => String(b || "").trim())
+      .filter(Boolean);
     if (!banners.length) return "";
     return `
         <aside class="ranking-box" aria-label="ブログランキング">
@@ -695,7 +699,7 @@ ${bodyHtml || '<p class="empty">本文がまだありません。Airtableの bod
         ${galleryHtml}
         ${relatedGuides(article.relatedGuides)}
         ${likeButton(article)}
-        ${rankingBox()}
+        ${rankingBox(article.series)}
         ${followBox(article)}
         ${pager(article, prev, next)}
         ${commentSection(article)}
