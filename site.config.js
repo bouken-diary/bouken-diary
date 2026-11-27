@@ -45,6 +45,9 @@ module.exports = {
       slug: "pokechamp",
       description:
         "「ポケモンチャンピオンズ」のシングルのランクマッチ日記です。レート1600から1800を目指して、パーティをどう変えたか、なぜ変えたかを記録しています。",
+      // にほんブログ村（ゲームブログ ポケモンGO・ポケモン（ゲーム））
+      blogmura:
+        '<a href="https://game.blogmura.com/pokemon/ranking/in?p_cid=11219272" target="_blank"><img src="https://b.blogmura.com/game/pokemon/88_31.gif" width="88" height="31" border="0" alt="にほんブログ村 ゲームブログ ポケモンGO・ポケモン（ゲーム）へ" /></a><br /><a href="https://game.blogmura.com/pokemon/ranking/in?p_cid=11219272" target="_blank">にほんブログ村</a>',
     },
     "ゼルダ時オカ編": {
       slug: "zelda-oot",
