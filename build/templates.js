@@ -464,6 +464,48 @@ ${content}
         </aside>`;
   }
 
+  // リクエスト箱（APIのURLが設定されているときだけ）。送信は assets/requests.js が行う。
+  // 送られたものは公開せず、APIの管理ページでだけ読める。
+  // ジャンルの選択肢は blog-api/src/requests.js の TOPICS と合わせる
+  const REQUEST_TOPICS = ["マイクラ", "ゼルダ", "ポケモン", "そのほか"];
+
+  // 読んでいる記事のジャンルを、最初から選んでおく
+  function requestTopicOf(text) {
+    const s = String(text || "");
+    if (/DQM|マイクラ/i.test(s)) return "マイクラ";
+    if (/ゼルダ/.test(s)) return "ゼルダ";
+    if (/ポケモン/.test(s)) return "ポケモン";
+    return "そのほか";
+  }
+
+  function requestBox(apiId, topicHint) {
+    if (!config.blogApi) return "";
+    const selected = requestTopicOf(topicHint);
+    return `
+        <aside class="request-box" aria-labelledby="request-heading" data-api="${esc(config.blogApi)}" data-slug="${esc(apiId)}">
+          <h2 id="request-heading" class="request-title">📮 次に読みたい記事をリクエスト</h2>
+          <p class="request-lead">「こんな攻略がほしい」「ここで困っている」など、ひとことでどうぞ。ここに書いたことは公開されず、ブログ主だけが読みます。</p>
+          <form class="request-form" novalidate>
+            <fieldset class="request-topics">
+              <legend>ジャンル</legend>
+              ${REQUEST_TOPICS.map(
+                (topic) =>
+                  `<label class="request-topic"><input type="radio" name="topic" value="${esc(topic)}"${topic === selected ? " checked" : ""} /><span>${esc(topic)}</span></label>`
+              ).join("")}
+            </fieldset>
+            <label class="comment-field">
+              <span>リクエスト・困っていること</span>
+              <textarea name="body" rows="3" maxlength="500" required></textarea>
+            </label>
+            <div class="comment-hp" aria-hidden="true">
+              <label>この欄は空のままにしてください <input name="website" type="text" tabindex="-1" autocomplete="off" /></label>
+            </div>
+            <button type="submit" class="comment-submit request-submit">送る</button>
+            <p class="request-status" role="status"></p>
+          </form>
+        </aside>`;
+  }
+
   // コメント欄（APIのURLが設定されているときだけ）。表示と投稿は assets/comments.js が行う
   function commentSection(article, apiId = article.slug) {
     if (!config.blogApi || config.comments === false) return "";
@@ -653,6 +695,7 @@ ${bodyHtml || '<p class="empty">本文がまだありません。Airtableの bod
         ${likeButton(guide, guide.apiId)}
         ${rankingBox()}
         ${followBox(guide, { what: "新しい攻略", title: guide.title, path: guidePath(guide) })}
+        ${requestBox(guide.apiId, guide.game)}
         ${commentSection(guide, guide.apiId)}
       </article>`;
 
@@ -665,7 +708,7 @@ ${bodyHtml || '<p class="empty">本文がまだありません。Airtableの bod
       content,
       scripts: [
         "assets/caption.js",
-        ...(config.blogApi ? ["assets/likes.js"] : []),
+        ...(config.blogApi ? ["assets/likes.js", "assets/requests.js"] : []),
         ...(config.blogApi && config.comments !== false ? ["assets/comments.js"] : []),
       ],
     });
@@ -701,6 +744,7 @@ ${bodyHtml || '<p class="empty">本文がまだありません。Airtableの bod
         ${likeButton(article)}
         ${rankingBox(article.series)}
         ${followBox(article)}
+        ${requestBox(article.slug, article.series)}
         ${pager(article, prev, next)}
         ${commentSection(article)}
       </article>`;
@@ -714,7 +758,7 @@ ${bodyHtml || '<p class="empty">本文がまだありません。Airtableの bod
       content,
       scripts: [
         "assets/caption.js",
-        ...(config.blogApi ? ["assets/likes.js"] : []),
+        ...(config.blogApi ? ["assets/likes.js", "assets/requests.js"] : []),
         ...(config.blogApi && config.comments !== false ? ["assets/comments.js"] : []),
       ],
     });

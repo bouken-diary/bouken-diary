@@ -11,23 +11,16 @@
 //   POST /admin/api/comments/<id>/reply   {body}
 //   POST /admin/api/comments/<id>/delete
 //   GET  /admin/api/likes                       → 記事ごとのいいね数・コメント数のランキング
+//   /admin/api/requests...                      → リクエスト箱（requests.js）
 
-import { json, hashedIp, readJson, articleExists, loadArticleIndex, sha256Hex } from "./lib.js";
+import { json, hashedIp, readJson, articleExists, loadArticleIndex, sha256Hex, cleanText } from "./lib.js";
+import { handleAdminRequests } from "./requests.js";
 
 const NAME_MAX = 30;
 const BODY_MAX = 1000;
 const MAX_LINKS = 2;
 const LIMIT_SHORT = { count: 5, ms: 10 * 60 * 1000 }; // 10分に5件まで
 const LIMIT_DAY = { count: 20, ms: 24 * 60 * 60 * 1000 }; // 1日20件まで
-
-function cleanText(value, max) {
-  return String(value ?? "")
-    .replace(/\r\n?/g, "\n")
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "") // 制御文字を除く
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
-    .slice(0, max);
-}
 
 // 公開用：投稿者のハッシュなど、表に出さない項目を外す
 function publicComment(row) {
@@ -162,6 +155,11 @@ export async function handleAdminApi(request, env, url, ctx) {
   if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
 
   const path = url.pathname.replace(/^\/admin\/api/, "");
+
+  // リクエスト箱（requests.js）
+  if (path === "/requests" || path.startsWith("/requests/")) {
+    return (await handleAdminRequests(request, env, ctx, path)) || json({ error: "not_found" }, 404);
+  }
 
   if (request.method === "GET" && path === "/likes") {
     const [likes, comments] = await env.DB.batch([

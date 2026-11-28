@@ -34,3 +34,19 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE INDEX IF NOT EXISTS idx_comments_slug ON comments (slug, status, created_at);
 CREATE INDEX IF NOT EXISTS idx_comments_status ON comments (status, created_at);
 CREATE INDEX IF NOT EXISTS idx_comments_author ON comments (author, created_at);
+
+-- リクエスト箱（「次に読みたい記事」。公開しない）
+--   slug   : 送ったページの記事
+--   topic  : マイクラ / ゼルダ / ポケモン / そのほか
+--   author : 送った人のIPをハッシュ化した値（連投の制限に使う。IPそのものは保存しない）
+CREATE TABLE IF NOT EXISTS requests (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug       TEXT NOT NULL,
+  topic      TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  author     TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_requests_created ON requests (created_at);
+CREATE INDEX IF NOT EXISTS idx_requests_author ON requests (author, created_at);

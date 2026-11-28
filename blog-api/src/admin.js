@@ -1,6 +1,6 @@
 // コメントの管理ページ（https://bouken-api.〇〇.workers.dev/admin）
 // パスワード（ADMIN_TOKEN）を入れると、承認待ちのコメントの承認・返信・削除と、
-// 記事ごとのいいね数のランキングが見られる。
+// 記事ごとのいいね数のランキング、リクエスト箱に届いたものが見られる。
 // パスワードはこのページのブラウザにだけ保存される。
 
 export function adminPage() {
@@ -75,6 +75,8 @@ const ADMIN_HTML = `<!doctype html>
   .rank-sub { font-size: 0.78rem; color: var(--muted); }
   .rank-nums { text-align: right; white-space: nowrap; font-size: 0.9rem; }
   .rank-nums .likes { font-weight: 700; font-size: 1.05rem; }
+  .topic { font-size: 0.75rem; background: var(--grass); color: #fff; padding: 0 0.45rem; border-radius: 3px; }
+  .topic-count { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin: 0 0 0.9rem; font-size: 0.9rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -93,6 +95,7 @@ const ADMIN_HTML = `<!doctype html>
       <button class="tab" role="tab" data-status="pending" type="button">承認待ち</button>
       <button class="tab" role="tab" data-status="approved" type="button">公開中</button>
       <button class="tab" role="tab" data-status="likes" type="button">いいね</button>
+      <button class="tab" role="tab" data-status="requests" type="button">リクエスト</button>
       <span class="spacer"></span>
       <button id="reload" type="button">更新</button>
       <button id="logout" type="button">ログアウト</button>
@@ -253,9 +256,65 @@ const ADMIN_HTML = `<!doctype html>
     list.append(ol);
   }
 
+  function renderRequests(data) {
+    const list = $("list");
+    list.replaceChildren();
+    if (!data.requests.length) {
+      list.append(el("p", "empty", "まだリクエストはありません。"));
+      return;
+    }
+    // ジャンルごとの件数
+    const counts = {};
+    data.requests.forEach((r) => (counts[r.topic] = (counts[r.topic] || 0) + 1));
+    const summary = el("p", "topic-count");
+    Object.keys(counts).forEach((t) => summary.append(el("span", "", t + "：" + counts[t] + "件")));
+    list.append(summary);
+
+    data.requests.forEach((r) => {
+      const box = el("article", "card");
+      const meta = el("div", "meta");
+      meta.append(el("span", "topic", r.topic));
+      const link = el("a", "", "送ったページ：" + (r.title || r.slug));
+      link.href = data.siteUrl.replace(/\\/+$/, "") + "/" + r.path;
+      link.target = "_blank";
+      link.rel = "noopener";
+      meta.append(link, el("span", "", formatDate(r.createdAt)));
+      box.append(meta, el("p", "body", r.body));
+
+      const actions = el("div", "actions");
+      const del = el("button", "danger", "削除");
+      del.type = "button";
+      del.onclick = async () => {
+        if (!confirm("このリクエストを削除しますか？元に戻せません。")) return;
+        $("status").textContent = "送信中…";
+        try {
+          await api("/requests/" + r.id + "/delete", { method: "POST", body: "{}" });
+          $("status").textContent = "削除しました。";
+          await load(false);
+        } catch (e) {
+          if (e.message !== "unauthorized") $("status").textContent = "失敗しました（" + e.message + "）";
+        }
+      };
+      actions.append(del);
+      box.append(actions);
+      list.append(box);
+    });
+  }
+
   async function load(clearStatus) {
     if (clearStatus !== false) $("status").textContent = "読み込み中…";
     document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.status === current)));
+    if (current === "requests") {
+      try {
+        const data = await api("/requests");
+        renderRequests(data);
+        if (clearStatus !== false) $("status").textContent = data.requests.length + "件（新しい順）";
+        show("app");
+      } catch (e) {
+        if (e.message !== "unauthorized") $("status").textContent = "読み込めませんでした（" + e.message + "）";
+      }
+      return;
+    }
     if (current === "likes") {
       try {
         renderLikes(await api("/likes"));

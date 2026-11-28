@@ -33,6 +33,16 @@ export function json(data, status = 200, origin = "") {
   });
 }
 
+// 送られてきた文字の掃除：制御文字を除き、3行以上の空行を2行にまとめ、長さを切る
+export function cleanText(value, max) {
+  return String(value ?? "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "") // 制御文字を除く
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, max);
+}
+
 export async function sha256Hex(text) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");

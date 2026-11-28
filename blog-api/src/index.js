@@ -2,12 +2,14 @@
 //
 //   /likes          いいね（likes.js）
 //   /comments       コメント（comments.js）
+//   /requests       リクエスト箱（requests.js）。公開しない
 //   /admin          コメントの管理ページ（admin.js）
 //   /admin/api/...  管理ページが使うAPI（パスワードが必要）
 
 import { SLUG_RE, allowedOrigin, corsHeaders, json } from "./lib.js";
 import { handleLikes } from "./likes.js";
 import { handlePublicComments, handleAdminApi } from "./comments.js";
+import { handlePublicRequests } from "./requests.js";
 import { adminPage } from "./admin.js";
 
 export default {
@@ -29,9 +31,10 @@ export default {
     }
 
     const slug = url.searchParams.get("slug") || "";
-    if (url.pathname === "/likes" || url.pathname === "/comments") {
+    if (url.pathname === "/likes" || url.pathname === "/comments" || url.pathname === "/requests") {
       if (!SLUG_RE.test(slug)) return json({ error: "invalid_slug" }, 400, origin);
       if (url.pathname === "/likes") return handleLikes(request, env, ctx, { slug, origin });
+      if (url.pathname === "/requests") return handlePublicRequests(request, env, ctx, { slug, origin });
       return handlePublicComments(request, env, ctx, { slug, origin });
     }
 
